@@ -228,9 +228,17 @@ colnames(diffex) <- c("name", "baseMeanLog2", "log2FoldChange", "padj")
 
 
 library(ggpubr)
-ggpubr::ggmaplot(data = diffex,
-                 size = 1, fdr = 0.05, fc = 2,
+p <- ggpubr::ggmaplot(data = diffex,
+                 size = 1, fdr = 0.05, fc = 0,
                  legend = "top", top = 0)
+p
+
+p_data <- p$data
+
+shoot_name_vec <- p_data[p_data$sig != "NS","name"]
+
+limma_countsTMMvoom_shoot <- limma_countsTMMvoom_shoot[rownames(limma_countsTMMvoom_shoot) %in% name_vec,]
+
 
 # limma root ----
 root_dge_limma <- DGEList(counts = Root_df)
@@ -270,11 +278,15 @@ write.csv(file = "significant_root_limma.csv", x = significant_root_limma)
 write.csv(file = "significant_shoot_limma.csv", x = significant_shoot_limma)
 
 potential <- limma_countsTMMvoom_root[limma_countsTMMvoom_root$adj.P.Val <= 0.05,]
-LogFC_boolvec <- abs(potential$logFC)>=1
+LogFC_boolvec <- abs(potential$logFC)>=2
 potential <- potential[LogFC_boolvec,]
+
+dim(potential)
+
 AveExp_Q1 <- quart(potential$AveExpr)[1]
 AveExp_boolvec <- potential$AveExpr < AveExp_Q1
 potential <- potential[AveExp_boolvec,]
+dim(potential)
 write.csv(file = "significant_low_copy_root_limma.csv", x = potential)
 
 
@@ -282,18 +294,20 @@ write.csv(file = "significant_low_copy_root_limma.csv", x = potential)
 diffex <- limma_countsTMMvoom_root
 diffex <- diffex[,c("AveExpr", "logFC", "adj.P.Val")]
 name <- rownames(diffex)
-diffex <- cbind(name, diffex)
-colnames(diffex) <- c("name", "baseMeanLog2", "log2FoldChange", "padj")
+rownames(diffex) <- name
+colnames(diffex) <- c("baseMeanLog2", "log2FoldChange", "padj")
 
-
+diffex
 library(ggpubr)
-ggpubr::ggmaplot(data = diffex,
-                 fdr = 0.05, fc = 2, size = 1,
+p <- ggpubr::ggmaplot(data = diffex,
+                 fdr = 0.05, fc = 0, size = 2,
                  legend = "top", top = 0)
+p
+p_data <- p$data
 
-diff_express
+root_name_vec <- p_data[p_data$sig != "NS","name"]
 
-
+limma_countsTMMvoom_root <- limma_countsTMMvoom_root[rownames(limma_countsTMMvoom_root) %in% name_vec,]
 
 ggpubr::ggmaplot(diff_express, main = expression("Group 1" %->% "Group 2"),
          fdr = 0.05, fc = 2, size = 0.4,

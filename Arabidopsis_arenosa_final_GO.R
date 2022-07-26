@@ -20,7 +20,7 @@ quart <- function(x) {
 }
 
 
-topDiffGenes <- function(allGene, thr=0.05)
+topDiffGenes <- function(allGene, thr = 0.05)
 {
   return(allGene <= thr);
 }
@@ -42,9 +42,6 @@ TermConversion <- function(GOvec){
   return(GOvec)
 }
 
-
-
-
 # topGO Biological Process for limma (shoot) ----
 genelist_shoot_limma <- limma_countsTMMvoom_shoot$adj.P.Val
 names(genelist_shoot_limma) <- rownames(limma_countsTMMvoom_shoot)
@@ -52,39 +49,39 @@ names(genelist_shoot_limma)
 GO_shoot_limma <- new("topGOdata",
                       description = "Shoot limma BP", ontology = "BP",
                       allGenes = genelist_shoot_limma, geneSel = topDiffGenes,
-                      nodeSize = 1, #1000
+                      nodeSize = 1000, #1000 for plots 1 for analysis
                       annot = annFUN.org, mapping = "org.At.tair.db")
 
 limma_shoot_Fischer <- runTest(GO_shoot_limma, algorithm = "elim", statistic = "fisher")
 
 limma_res_shoot <- GenTable(GO_shoot_limma, elimFisher = limma_shoot_Fischer,
                             orderBy = "elimFisher", ranksOf = "elimFisher",
-                            topNodes = 500, numChar=1000) #20
+                            topNodes = 20, numChar=1000) #20 for plots, 500 for analysis
 
 View(limma_res_shoot)
 # # 
-# res_shoot <- gather(limma_res_shoot, key = "Legend", value = "Value", Significant, Expected)
-# res_shoot$elimFisher <- sapply(X = res_shoot$elimFisher, as.numeric)
+res_shoot <- gather(limma_res_shoot[1:10,], key = "Legend", value = "Gene Counts", Significant, Expected)
+res_shoot$elimFisher <- sapply(X = res_shoot$elimFisher, as.numeric)
 # res_shoot["elimFisher"] <- sapply(res_shoot["elimFisher"], format, scientific = T)
 # res_shoot[21:40,"elimFisher"] <- c(rep("", 20))
-# # res_shoot$Term <- sapply(strwrap(res_shoot$Term, width = 20, simplify = FALSE), paste, collapse="\n")
-# # View(res_shoot)
-# colnames(res_shoot)[1] <- "GO Term ID"
-# colnames(res_shoot)[2] <- "GO Term"
-# 
-# ggbarplot(res_shoot, "GO Term", "Value",
-#                   fill = "Legend",
-#                   color = "Legend",
-#                   palette = "Paired",
-#                   # label = res_shoot[1:10,"elimFisher"],
-#                   position = position_dodge2(0.5)) +
-#   geom_text(aes(label=elimFisher), check_overlap = T, nudge_y = 4, na.rm = T) +
-#   coord_flip()
+# res_shoot$Term <- sapply(strwrap(res_shoot$Term, width = 20, simplify = FALSE), paste, collapse="\n")
+View(res_shoot)
+colnames(res_shoot)[1] <- "GO Term ID"
+colnames(res_shoot)[2] <- "GO Term"
+
+ggbarplot(res_shoot, "GO Term", "Gene Counts",
+                  fill = "Legend",
+                  color = "Legend",
+                  palette = "Paired",
+                  # label = res_shoot[1:10,"elimFisher"],
+                  position = position_dodge2(0.5)) +
+  # geom_text(aes(label=elimFisher), check_overlap = T, nudge_y = 4, na.rm = T) +
+  coord_flip()
 
 
 write.csv(limma_res_shoot, "Arenosa_shoot_BP.csv")
 
-write.xlsx(limma_res_shoot, file = "./results/BiologicalProcess.xlsx",
+xlsx::write.xlsx(limma_res_shoot, file = "./results/BiologicalProcess.xlsx",
            sheetName = "limma_shoot", append = TRUE)
 
 sig_limma_shoot <- significant_shoot_limma
@@ -94,6 +91,15 @@ genes_limma_shoot <- genesInTerm(GO_shoot_limma)
 
 genes_limma_shoot <- IDtoTerm(genes_limma_shoot)
 
+names(genes_limma_shoot)
+
+
+for(term in limma_res_shoot[1:10,"Term"]){
+  tmp_df <- limma_countsTMMvoom_shoot[rownames(limma_countsTMMvoom_shoot) %in% genes_limma_shoot[[term]],]
+  roi_df <- tmp_df[tmp_df$adj.P.Val <= 0.05,]
+  xlsx::write.xlsx(roi_df, file = "./results/GO_shoot_genes.xlsx",
+                   sheetName = term, append = TRUE)
+}
 
 
 limma_shoot_json <- toJSON(lapply(genes_limma_shoot, function(x) x[x %in% rownames(sig_limma_shoot)]),pretty = TRUE, auto_unbox = TRUE)
@@ -107,37 +113,37 @@ names(genelist_root_limma) <- rownames(limma_countsTMMvoom_root)
 GO_root_limma <- new("topGOdata",
                      description = "Root limma BP", ontology = "BP",
                      allGenes = genelist_root_limma, geneSel = topDiffGenes,
-                     nodeSize = 1, #2000
+                     nodeSize = 2000, #2000 for bar; 1 for analysis
                      annot = annFUN.org, mapping = "org.At.tair.db")
 
 limma_root_Fischer <- runTest(GO_root_limma, algorithm = "elim", statistic = "fisher")
 
 limma_res_root <- GenTable(GO_root_limma, elimFisher = limma_root_Fischer,
                            orderBy = "elimFisher", ranksOf = "elimFisher",
-                           topNodes = 500, numChar=1000) #25
+                           topNodes = 25, numChar=1000) #25 for bar, 500 for analysis
 
 # 
 View(limma_res_root)
 # 
-# res_shoot <- gather(limma_res_root, key = "Legend", value = "Value", Significant, Expected)
-# res_shoot[c(1,26), "elimFisher"] <- "1e-30"
-# res_shoot$elimFisher <- sapply(X = res_shoot$elimFisher, as.numeric)
-# res_shoot["elimFisher"] <- sapply(res_shoot["elimFisher"], format, scientific = T)
-# res_shoot[26:50,"elimFisher"] <- c(rep("", 25))
-# # res_shoot$Term <- sapply(strwrap(res_shoot$Term, width = 20, simplify = FALSE), paste, collapse="\n")
-# # View(res_shoot)
-# colnames(res_shoot)[1] <- "GO Term ID"
-# colnames(res_shoot)[2] <- "GO Term"
-# ggbarplot(res_shoot, "GO Term", "Value",
-#           fill = "Legend",
-#           color = "Legend",
-#           palette = "Paired",
-#           # label = res_shoot[1:10,"elimFisher"],
-#           position = position_dodge2(0.5)) +
-#   geom_text(aes(label=elimFisher), check_overlap = T, nudge_y = 200 , na.rm = T) +
-#   coord_flip()
-# # 
-# # 
+res_shoot <- gather(limma_res_root[1:10,], key = "Legend", value = "Gene Counts", Significant, Expected)
+res_shoot[c(1,11), "elimFisher"] <- "1e-30"
+res_shoot$elimFisher <- sapply(X = res_shoot$elimFisher, as.numeric)
+res_shoot["elimFisher"] <- sapply(res_shoot["elimFisher"], format, scientific = T)
+res_shoot[26:50,"elimFisher"] <- c(rep("", 25))
+# res_shoot$Term <- sapply(strwrap(res_shoot$Term, width = 20, simplify = FALSE), paste, collapse="\n")
+# View(res_shoot)
+colnames(res_shoot)[1] <- "GO Term ID"
+colnames(res_shoot)[2] <- "GO Term"
+ggbarplot(res_shoot, "GO Term", "Gene Counts",
+          fill = "Legend",
+          color = "Legend",
+          palette = "Paired",
+          # label = res_shoot[1:10,"elimFisher"],
+          position = position_dodge2(0.5)) +
+  # geom_text(aes(label=elimFisher), check_overlap = T, nudge_y = 200 , na.rm = T) +
+  coord_flip()
+#
+#
 
 
 
@@ -159,8 +165,20 @@ View(limma_res_root)
 
 write.csv(limma_res_root, "Arenosa_root_BP.csv")
 
-write.xlsx(limma_res_root, file = "./results/BiologicalProcess.xlsx",
+xlsx::write.xlsx(limma_res_root, file = "./results/BiologicalProcess.xlsx",
            sheetName = "limma_root", append = TRUE)
+
+
+for(term in limma_res_root[1:10,"Term"]){
+  tmp_df <- limma_countsTMMvoom_root[rownames(limma_countsTMMvoom_root) %in% genes_limma_root[[term]],]
+  roi_df <- tmp_df[tmp_df$adj.P.Val <= 0.05,]
+  xlsx::write.xlsx(roi_df, file = "./results/GO_root_genes.xlsx",
+                   sheetName = term, append = TRUE)
+}
+
+
+
+
 
 sig_limma_root <- significant_root_limma
 rownames(sig_limma_root) <- rownames(sig_limma_root)
